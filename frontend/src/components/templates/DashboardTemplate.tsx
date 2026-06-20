@@ -6,13 +6,12 @@ interface Props {
   toolbar: ReactNode
   chart: ReactNode
   aside: ReactNode
-  table: ReactNode
   error?: ReactNode
 }
 
 /** Page layout for the dashboard. Pure presentation: it arranges slots and
  * holds no state. */
-export function DashboardTemplate({ header, toolbar, chart, aside, table, error }: Props) {
+export function DashboardTemplate({ header, toolbar, chart, aside, error }: Props) {
   return (
     <div style={{ background: colors.bg, minHeight: '100vh', color: colors.text, fontFamily: 'sans-serif', padding: '20px 24px' }}>
       {header}
@@ -22,7 +21,6 @@ export function DashboardTemplate({ header, toolbar, chart, aside, table, error 
         <div style={{ flex: 1, minWidth: 0 }}>{chart}</div>
         {aside}
       </div>
-      {table}
     </div>
   )
 }

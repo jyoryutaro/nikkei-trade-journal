@@ -27,6 +27,11 @@ func (s *MarketDataService) Fetch(ctx context.Context, symbol string) (int, erro
 	return s.repo.BulkUpsert(ctx, contract, marketdata.BaseTimeframe, candles)
 }
 
+// Contracts returns the contract codes available in storage.
+func (s *MarketDataService) Contracts(ctx context.Context) ([]string, error) {
+	return s.repo.ListContracts(ctx)
+}
+
 // Candles reads base candles for contract from the DB and aggregates to tf.
 func (s *MarketDataService) Candles(ctx context.Context, contract string, tf marketdata.Timeframe) ([]marketdata.Candle, error) {
 	base, err := s.repo.FindBaseCandles(ctx, contract)

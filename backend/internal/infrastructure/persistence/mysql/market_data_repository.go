@@ -51,6 +51,25 @@ func (r *MarketDataRepository) FindBaseCandles(ctx context.Context, contract str
 	return candles, rows.Err()
 }
 
+// ListContracts returns the distinct contract codes present in storage.
+func (r *MarketDataRepository) ListContracts(ctx context.Context) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT DISTINCT contract FROM market_data ORDER BY contract`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var contracts []string
+	for rows.Next() {
+		var c string
+		if err := rows.Scan(&c); err != nil {
+			return nil, err
+		}
+		contracts = append(contracts, c)
+	}
+	return contracts, rows.Err()
+}
+
 // BulkUpsert inserts or updates candles for a contract/timeframe in one tx.
 func (r *MarketDataRepository) BulkUpsert(ctx context.Context, contract string, tf marketdata.Timeframe, candles []marketdata.Candle) (int, error) {
 	tx, err := r.db.BeginTx(ctx, nil)

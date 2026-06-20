@@ -11,4 +11,8 @@ type Repository interface {
 	// BulkUpsert stores candles for a contract/timeframe and returns the number
 	// of rows written.
 	BulkUpsert(ctx context.Context, contract string, tf Timeframe, candles []Candle) (int, error)
+
+	// ListContracts returns the distinct contract codes present in storage,
+	// sorted ascending.
+	ListContracts(ctx context.Context) ([]string, error)
 }

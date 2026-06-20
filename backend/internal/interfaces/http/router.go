@@ -12,6 +12,7 @@ func NewRouter(marketData *MarketDataHandler, journal *JournalHandler, secret st
 
 	// Public: reads stored candles from DB.
 	mux.HandleFunc("GET /api/market-data", marketData.Get)
+	mux.HandleFunc("GET /api/contracts", marketData.Contracts)
 
 	// Internal: fetches from Yahoo Finance and persists to DB.
 	// Rate-limited (burst 10, 10 req/min) and token-protected.

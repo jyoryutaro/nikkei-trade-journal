@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   createChart,
   CandlestickSeries,
+  HistogramSeries,
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
@@ -42,6 +43,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
   const chartHostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const candlesRef = useRef<Candle[]>(candles)
   const entriesRef = useRef<JournalEntry[]>(entries)
   const intervalRef = useRef<number>(INTERVAL_SECONDS[timeframe] ?? 60)
@@ -63,7 +65,8 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
     if (!chart || !series) return
     const timeScale = chart.timeScale()
     const paneWidth = timeScale.width()
-    const paneHeight = (chartHostRef.current?.clientHeight ?? 0) - timeScale.height()
+    // height of the candle pane (pane 0); markers live in this pane only
+    const paneHeight = chart.panes()[0]?.getHeight() ?? ((chartHostRef.current?.clientHeight ?? 0) - timeScale.height())
 
     // candle pitch in px (uniform across the view) → marker a bit smaller
     const c0 = timeScale.logicalToCoordinate(0 as Logical)
@@ -124,6 +127,16 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
     })
+    // volume histogram in its OWN pane below the candles, so it gets its own
+    // price axis (ticks). The time axis is shared by the single chart instance.
+    const volumeSeries = chart.addSeries(
+      HistogramSeries,
+      { priceFormat: { type: 'volume' }, color: '#eab308' }, // yellow
+      1, // pane index 1 (separate pane)
+    )
+    volumeSeriesRef.current = volumeSeries
+    const panes = chart.panes()
+    if (panes.length > 1) panes[1].setHeight(110)
 
     chart.subscribeClick(param => {
       if (!param.time) {
@@ -153,6 +166,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
       chart.remove()
       chartRef.current = null
       seriesRef.current = null
+      volumeSeriesRef.current = null
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -166,6 +180,12 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
         high: c.high,
         low: c.low,
         close: c.close,
+      }))
+    )
+    volumeSeriesRef.current?.setData(
+      candles.map(c => ({
+        time: c.time as UTCTimestamp,
+        value: c.volume,
       }))
     )
     applyWindow(chartRef.current, candles, windowHours)
