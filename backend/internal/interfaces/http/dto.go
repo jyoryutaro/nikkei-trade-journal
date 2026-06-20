@@ -21,12 +21,12 @@ func toCandleDTOs(contract string, tf marketdata.Timeframe, candles []marketdata
 		out[i] = candleDTO{
 			Contract:  contract,
 			Timeframe: tf.String(),
-			Time:      c.Time.Unix(),
-			Open:      c.Open,
-			High:      c.High,
-			Low:       c.Low,
-			Close:     c.Close,
-			Volume:    c.Volume,
+			Time:      c.Time().Unix(),
+			Open:      c.Open(),
+			High:      c.High(),
+			Low:       c.Low(),
+			Close:     c.Close(),
+			Volume:    c.Volume(),
 		}
 	}
 	return out

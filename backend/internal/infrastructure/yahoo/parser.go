@@ -59,14 +59,11 @@ func ParseChart(raw []byte) (contract string, candles []marketdata.Candle, err e
 		if i < len(q.Volume) && q.Volume[i] != nil {
 			vol = *q.Volume[i]
 		}
-		candles = append(candles, marketdata.Candle{
-			Time:   time.Unix(ts, 0).UTC(),
-			Open:   *q.Open[i],
-			High:   *q.High[i],
-			Low:    *q.Low[i],
-			Close:  *q.Close[i],
-			Volume: vol,
-		})
+		candles = append(candles, marketdata.NewCandle(
+			time.Unix(ts, 0).UTC(),
+			*q.Open[i], *q.High[i], *q.Low[i], *q.Close[i],
+			vol,
+		))
 	}
 	return contract, candles, nil
 }
