@@ -9,8 +9,9 @@
 | Comment（コメント） | id, userId, 対象(trade/時点), 日時, 本文, タグ |
 | MarketData（相場） | 限月(または連続足区分), 日時, 始値, 高値, 安値, 終値, 出来高 |
 
-- 対象は日経225先物。先物は限月（SQ）があるため、Trade は限月を保持し、相場データは限月別または連続足として扱う（[12-open-issues.md](12-open-issues.md) Q-05）。
-- 数量の単位は「枚（contract）」とする。
+- 対象は日経225先物。相場データはメジャーSQ（3/6/9/12月限）の各限月を可能な限り全て保持する（取得不可なら取得できる分で可。[12-open-issues.md](12-open-issues.md) Q-05）。
+- Trade は限月を保持する。数量の単位は「枚（contract）」とする。
+- 商品種別（ラージ / ミニ / マイクロ、OSE / CME 等）は限定せず、データ取得先に依存する（[12-open-issues.md](12-open-issues.md) Q-06）。
 - データソース: <日経225先物の価格データの取得元。例：API名 / 手入力 / CSV取込。TBD（[12-open-issues.md](12-open-issues.md) Q-01）>
 
 ## Firestore コレクション構成（案）
