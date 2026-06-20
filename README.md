@@ -139,6 +139,12 @@ make down   # MySQL コンテナを停止
 | `ADDR` | `:8080` | Go サーバーのリッスンアドレス |
 | `INTERNAL_SECRET` | `dev-secret`（`make server` 経由時） | `/api/market-data/fetch` の認証トークン。**本番では必ず変更すること** |
 
+#### フロントエンド（Vite）
+
+| 変数 | デフォルト | 用途 |
+|---|---|---|
+| `VITE_API_BASE` | `http://localhost:8080` | バックエンド API のベース URL（末尾スラッシュ無し）。デプロイ時は公開 URL を設定。`frontend/.env.example` をコピーして `frontend/.env.local` に記載 |
+
 ### make コマンド一覧
 
 | コマンド | 説明 |
