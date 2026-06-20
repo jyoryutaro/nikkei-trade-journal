@@ -65,7 +65,8 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
     if (!chart || !series) return
     const timeScale = chart.timeScale()
     const paneWidth = timeScale.width()
-    const paneHeight = (chartHostRef.current?.clientHeight ?? 0) - timeScale.height()
+    // height of the candle pane (pane 0); markers live in this pane only
+    const paneHeight = chart.panes()[0]?.getHeight() ?? ((chartHostRef.current?.clientHeight ?? 0) - timeScale.height())
 
     // candle pitch in px (uniform across the view) → marker a bit smaller
     const c0 = timeScale.logicalToCoordinate(0 as Logical)
@@ -126,18 +127,16 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
     })
-    // leave room at the bottom for the volume histogram
-    chart.priceScale('right').applyOptions({ scaleMargins: { top: 0.1, bottom: 0.28 } })
-
-    // volume histogram on its own overlay scale, pinned to the bottom, sharing
-    // the same time axis as the candles
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'volume',
-      color: 'rgba(234,179,8,0.6)', // yellow
-    })
-    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
+    // volume histogram in its OWN pane below the candles, so it gets its own
+    // price axis (ticks). The time axis is shared by the single chart instance.
+    const volumeSeries = chart.addSeries(
+      HistogramSeries,
+      { priceFormat: { type: 'volume' }, color: '#eab308' }, // yellow
+      1, // pane index 1 (separate pane)
+    )
     volumeSeriesRef.current = volumeSeries
+    const panes = chart.panes()
+    if (panes.length > 1) panes[1].setHeight(110)
 
     chart.subscribeClick(param => {
       if (!param.time) {
