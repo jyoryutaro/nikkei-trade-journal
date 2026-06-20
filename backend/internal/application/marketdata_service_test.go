@@ -35,6 +35,10 @@ func (r *stubRepo) BulkUpsert(_ context.Context, _ string, _ marketdata.Timefram
 	return len(candles), r.err
 }
 
+func (r *stubRepo) ListContracts(_ context.Context) ([]string, error) {
+	return nil, r.err
+}
+
 // TestCandles_AggregatesBaseCandlesToRequestedTimeframe guarantees that the
 // service reads base candles from the DB and returns them collapsed into the
 // caller's requested timeframe.

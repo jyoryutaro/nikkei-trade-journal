@@ -11,6 +11,14 @@ export interface Candle {
   volume: number
 }
 
+/** Fetch the distinct contract codes available in the DB. */
+export async function fetchContracts(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/contracts`)
+  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  const data: string[] | null = await res.json()
+  return data ?? []
+}
+
 export async function fetchMarketData(contract: string, timeframe: string): Promise<Candle[]> {
   const params = new URLSearchParams({ contract, timeframe })
   const res = await fetch(`${API_BASE}/api/market-data?${params}`)

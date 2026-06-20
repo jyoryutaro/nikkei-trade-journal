@@ -39,6 +39,21 @@ func (h *MarketDataHandler) Get(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(toCandleDTOs(contract, tf, candles))
 }
 
+// Contracts handles GET /api/contracts
+// Returns the distinct contract codes present in the DB.
+func (h *MarketDataHandler) Contracts(w http.ResponseWriter, r *http.Request) {
+	contracts, err := h.svc.Contracts(r.Context())
+	if err != nil {
+		http.Error(w, "query error", http.StatusInternalServerError)
+		return
+	}
+	if contracts == nil {
+		contracts = []string{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contracts)
+}
+
 // Fetch handles POST /api/market-data/fetch?symbol=
 // Pulls candles from Yahoo Finance and persists them to DB.
 // This endpoint is internal-only (protected by InternalOnly middleware).

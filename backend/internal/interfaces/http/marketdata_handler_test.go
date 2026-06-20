@@ -34,6 +34,10 @@ func (r *stubRepo) BulkUpsert(_ context.Context, _ string, _ marketdata.Timefram
 	return len(candles), nil
 }
 
+func (r *stubRepo) ListContracts(_ context.Context) ([]string, error) {
+	return nil, nil
+}
+
 func newSvc(source *stubSource, repo *stubRepo) *application.MarketDataService {
 	return application.NewMarketDataService(source, repo)
 }
