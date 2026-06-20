@@ -24,9 +24,14 @@ export function EntryMarker({ entry, x, y, size, hovered, onHover, onLeave }: Pr
   const color = isLong ? colors.up : colors.down
   const borderWidth = size >= 8 ? 2 : 1
 
+  // place on the integer pixel grid (same as the canvas) so the marker sits
+  // exactly centred on the bar instead of half a pixel off
+  const left = Math.round(x - size / 2)
+  const top = Math.round(y - size / 2)
+
   return (
     <div
-      style={{ position: 'absolute', left: `${x}px`, top: `${y}px`, transform: 'translate(-50%, -50%)', pointerEvents: 'auto' }}
+      style={{ position: 'absolute', left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px`, pointerEvents: 'auto' }}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >

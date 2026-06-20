@@ -70,7 +70,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
     const c1 = timeScale.logicalToCoordinate(1 as Logical)
     if (c0 != null && c1 != null) {
       const spacing = Math.abs(c1 - c0)
-      setMarkerSize(Math.max(3, Math.min(20, Math.round(spacing * 0.65))))
+      setMarkerSize(Math.max(2, Math.min(10, Math.round(spacing * 0.32))))
     }
 
     const interval = intervalRef.current
