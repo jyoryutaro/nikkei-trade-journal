@@ -6,7 +6,6 @@ import { AppHeader } from '../organisms/AppHeader'
 import { ChartToolbar } from '../organisms/ChartToolbar'
 import { CandlestickChart } from '../organisms/CandlestickChart'
 import { CommentPanel } from '../organisms/CommentPanel'
-import { PriceTable } from '../organisms/PriceTable'
 import { DashboardTemplate } from '../templates/DashboardTemplate'
 import { colors } from '../../theme'
 
@@ -77,7 +76,6 @@ export function DashboardPage() {
         )
       }
       aside={<CommentPanel contract={contract} selectedCandle={selectedCandle} onSubmitted={loadEntries} />}
-      table={<PriceTable candles={candles} />}
     />
   )
 }

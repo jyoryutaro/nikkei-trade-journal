@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   createChart,
   CandlestickSeries,
+  HistogramSeries,
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
@@ -42,6 +43,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
   const chartHostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const candlesRef = useRef<Candle[]>(candles)
   const entriesRef = useRef<JournalEntry[]>(entries)
   const intervalRef = useRef<number>(INTERVAL_SECONDS[timeframe] ?? 60)
@@ -124,6 +126,17 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
     })
+    // leave room at the bottom for the volume histogram
+    chart.priceScale('right').applyOptions({ scaleMargins: { top: 0.1, bottom: 0.28 } })
+
+    // volume histogram on its own overlay scale, pinned to the bottom, sharing
+    // the same time axis as the candles
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volume',
+    })
+    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
+    volumeSeriesRef.current = volumeSeries
 
     chart.subscribeClick(param => {
       if (!param.time) {
@@ -153,6 +166,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
       chart.remove()
       chartRef.current = null
       seriesRef.current = null
+      volumeSeriesRef.current = null
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -166,6 +180,13 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
         high: c.high,
         low: c.low,
         close: c.close,
+      }))
+    )
+    volumeSeriesRef.current?.setData(
+      candles.map(c => ({
+        time: c.time as UTCTimestamp,
+        value: c.volume,
+        color: c.close >= c.open ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)',
       }))
     )
     applyWindow(chartRef.current, candles, windowHours)
