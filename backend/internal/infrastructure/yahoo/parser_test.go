@@ -57,9 +57,10 @@ func TestParseChart_ValidJSONProducesContractAndCandles(t *testing.T) {
 	}
 }
 
-// TestParseChart_RowsWithNilOHLCAreSkipped guarantees that incomplete rows
-// (any nil OHLC field) do not produce a candle, preventing zero-value pollution.
-func TestParseChart_RowsWithNilOHLCAreSkipped(t *testing.T) {
+// TestParseChart_NilOHLCForwardFilled guarantees that a row with a nil OHLC
+// field is forward-filled with the previous close (a flat bar, volume 0) so
+// the series stays continuous, rather than leaving a gap.
+func TestParseChart_NilOHLCForwardFilled(t *testing.T) {
 	// Arrange: second row has a nil open price
 	raw := []byte(`{
     "chart": {
@@ -86,7 +87,56 @@ func TestParseChart_RowsWithNilOHLCAreSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if len(candles) != 2 {
+		t.Fatalf("expected 2 candles (nil row forward-filled), got %d", len(candles))
+	}
+	filled := candles[1]
+	if want := time.Unix(1000060, 0).UTC(); filled.Time() != want {
+		t.Errorf("Time: got %v, want %v", filled.Time(), want)
+	}
+	prevClose := 25050.0
+	if filled.Open() != prevClose || filled.High() != prevClose || filled.Low() != prevClose || filled.Close() != prevClose {
+		t.Errorf("filled OHLC: got O=%v H=%v L=%v C=%v, want all %v",
+			filled.Open(), filled.High(), filled.Low(), filled.Close(), prevClose)
+	}
+	if filled.Volume() != 0 {
+		t.Errorf("filled Volume: got %v, want 0", filled.Volume())
+	}
+}
+
+// TestParseChart_LeadingGapDropped guarantees that nil rows before the first
+// real value are dropped (nothing to forward-fill from).
+func TestParseChart_LeadingGapDropped(t *testing.T) {
+	// Arrange: first row is nil, second row is valid
+	raw := []byte(`{
+    "chart": {
+      "result": [{
+        "meta": {"symbol": "NK=F", "shortName": "Nikkei/USD Futures,Sep-2026"},
+        "timestamp": [1000000, 1000060],
+        "indicators": {
+          "quote": [{
+            "open":   [null, 25100.0],
+            "high":   [null, 25200.0],
+            "low":    [null, 25000.0],
+            "close":  [null, 25150.0],
+            "volume": [null, 2000]
+          }]
+        }
+      }]
+    }
+  }`)
+
+	// Act
+	_, candles, err := yahoo.ParseChart(raw)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(candles) != 1 {
-		t.Errorf("expected 1 candle (nil row skipped), got %d", len(candles))
+		t.Fatalf("expected 1 candle (leading gap dropped), got %d", len(candles))
+	}
+	if candles[0].Open() != 25100.0 {
+		t.Errorf("Open: got %v, want 25100.0", candles[0].Open())
 	}
 }

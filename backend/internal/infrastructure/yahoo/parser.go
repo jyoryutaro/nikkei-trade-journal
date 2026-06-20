@@ -33,8 +33,11 @@ type chartResponse struct {
 }
 
 // ParseChart decodes Yahoo Finance v8 chart JSON, returning the detected
-// contract code (from the meta shortName) and the candles. Rows with missing
-// OHLC values are skipped.
+// contract code (from the meta shortName) and the candles. Timestamps with
+// missing OHLC values (Yahoo returns null for minutes with no trade) are
+// forward-filled with the previous close (a flat bar with volume 0) so the
+// 1-minute series stays continuous. A leading gap before the first real value
+// is dropped.
 func ParseChart(raw []byte) (contract string, candles []marketdata.Candle, err error) {
 	var resp chartResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
@@ -51,19 +54,26 @@ func ParseChart(raw []byte) (contract string, candles []marketdata.Candle, err e
 
 	contract = contractFromShortName(result.Meta.ShortName)
 
+	var lastClose float64
+	var havePrev bool
 	for i, ts := range result.Timestamps {
-		if i >= len(q.Open) || q.Open[i] == nil || q.High[i] == nil || q.Low[i] == nil || q.Close[i] == nil {
+		t := time.Unix(ts, 0).UTC()
+
+		if i < len(q.Open) && q.Open[i] != nil && q.High[i] != nil && q.Low[i] != nil && q.Close[i] != nil {
+			var vol int64
+			if i < len(q.Volume) && q.Volume[i] != nil {
+				vol = *q.Volume[i]
+			}
+			candles = append(candles, marketdata.NewCandle(t, *q.Open[i], *q.High[i], *q.Low[i], *q.Close[i], vol))
+			lastClose = *q.Close[i]
+			havePrev = true
 			continue
 		}
-		var vol int64
-		if i < len(q.Volume) && q.Volume[i] != nil {
-			vol = *q.Volume[i]
+
+		// missing value → forward-fill with the previous close (flat bar, vol 0)
+		if havePrev {
+			candles = append(candles, marketdata.NewCandle(t, lastClose, lastClose, lastClose, lastClose, 0))
 		}
-		candles = append(candles, marketdata.NewCandle(
-			time.Unix(ts, 0).UTC(),
-			*q.Open[i], *q.High[i], *q.Low[i], *q.Close[i],
-			vol,
-		))
 	}
 	return contract, candles, nil
 }
