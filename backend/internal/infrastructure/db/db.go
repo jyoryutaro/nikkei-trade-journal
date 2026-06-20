@@ -1,4 +1,3 @@
-// Package db provides the MySQL connection used by infrastructure adapters.
 package db
 
 import (

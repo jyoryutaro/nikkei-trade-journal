@@ -2,8 +2,7 @@ package marketdata
 
 import "context"
 
-// Repository is the persistence boundary (port) for market data. It is defined
-// in the domain layer; concrete adapters live in infrastructure.
+// Repository is the persistence boundary (port) for market data.
 type Repository interface {
 	// FindBaseCandles returns the stored base-timeframe candles for a contract,
 	// sorted by time ascending. An empty contract returns all contracts.

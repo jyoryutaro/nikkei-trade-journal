@@ -1,4 +1,3 @@
-// Package mysql implements the marketdata.Repository port against MySQL.
 package mysql
 
 import (
@@ -14,7 +13,6 @@ type MarketDataRepository struct {
 	db *sql.DB
 }
 
-// compile-time check that the adapter satisfies the domain port.
 var _ marketdata.Repository = (*MarketDataRepository)(nil)
 
 // NewMarketDataRepository constructs the repository.
@@ -50,10 +48,7 @@ func (r *MarketDataRepository) FindBaseCandles(ctx context.Context, contract str
 		}
 		candles = append(candles, marketdata.NewCandle(t, open, high, low, close, volume))
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return candles, nil
+	return candles, rows.Err()
 }
 
 // BulkUpsert inserts or updates candles for a contract/timeframe in one tx.

@@ -8,6 +8,7 @@ import (
 	"github.com/min-legomain/nikkei-trade-journal/backend/internal/application"
 	"github.com/min-legomain/nikkei-trade-journal/backend/internal/infrastructure/db"
 	"github.com/min-legomain/nikkei-trade-journal/backend/internal/infrastructure/persistence/mysql"
+	"github.com/min-legomain/nikkei-trade-journal/backend/internal/infrastructure/yahoo"
 	httpapi "github.com/min-legomain/nikkei-trade-journal/backend/internal/interfaces/http"
 )
 
@@ -20,16 +21,21 @@ func main() {
 	defer database.Close()
 	log.Println("DB connected")
 
-	// Compose the layers: repository (infra) → service (application) → handler (interface).
+	secret := getEnv("INTERNAL_SECRET", "")
+	if secret == "" {
+		log.Fatal("INTERNAL_SECRET env var is required")
+	}
+
 	marketRepo := mysql.NewMarketDataRepository(database)
-	marketSvc := application.NewMarketDataService(marketRepo)
+	fetcher := yahoo.NewFetcher(&http.Client{})
+	marketSvc := application.NewMarketDataService(fetcher, marketRepo)
 	marketHandler := httpapi.NewMarketDataHandler(marketSvc)
 
 	journalRepo := mysql.NewJournalRepository(database)
 	journalSvc := application.NewJournalService(journalRepo)
 	journalHandler := httpapi.NewJournalHandler(journalSvc)
 
-	router := httpapi.NewRouter(marketHandler, journalHandler)
+	router := httpapi.NewRouter(marketHandler, journalHandler, secret)
 
 	addr := getEnv("ADDR", ":8080")
 	log.Printf("server listening on %s", addr)
