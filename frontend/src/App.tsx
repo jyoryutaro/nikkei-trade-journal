@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchMarketData, type Candle } from './api/marketData'
+import { defaultWindow } from './constants/timeframes'
 import { ContractSelector } from './components/ContractSelector'
 import { ChartToolbar } from './components/ChartToolbar'
 import { CandlestickChart } from './components/CandlestickChart'
@@ -9,10 +10,16 @@ import { PriceTable } from './components/PriceTable'
 export default function App() {
   const [contract, setContract] = useState('2609')
   const [timeframe, setTimeframe] = useState('1m')
-  const [windowHours, setWindowHours] = useState<number | null>(1)
+  const [windowHours, setWindowHours] = useState<number | null>(defaultWindow('1m'))
   const [candles, setCandles] = useState<Candle[]>([])
   const [selectedCandle, setSelectedCandle] = useState<Candle | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const handleTimeframeChange = (tf: string) => {
+    setTimeframe(tf)
+    setWindowHours(defaultWindow(tf))
+    setSelectedCandle(null)
+  }
 
   useEffect(() => {
     setSelectedCandle(null)
@@ -39,7 +46,7 @@ export default function App() {
       <ChartToolbar
         timeframe={timeframe}
         windowHours={windowHours}
-        onTimeframeChange={setTimeframe}
+        onTimeframeChange={handleTimeframeChange}
         onWindowChange={setWindowHours}
       />
 

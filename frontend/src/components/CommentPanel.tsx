@@ -1,13 +1,8 @@
 import type { Candle } from '../api/marketData'
+import { formatTimeJST } from '../api/marketData'
 
 interface Props {
   selectedCandle: Candle | null
-}
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
-  return jst.toISOString().slice(0, 16).replace('T', ' ') + ' JST'
 }
 
 const panelStyle: React.CSSProperties = {
@@ -46,7 +41,7 @@ export function CommentPanel({ selectedCandle }: Props) {
       ) : (
         <>
           <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px 12px', fontSize: '0.82rem', lineHeight: 1.8 }}>
-            <p style={{ color: '#64748b', marginBottom: '4px' }}>{formatTime(selectedCandle.time)}</p>
+            <p style={{ color: '#64748b', marginBottom: '4px' }}>{formatTimeJST(selectedCandle.time)}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
               <span style={{ color: '#94a3b8' }}>始値</span>
               <span style={{ textAlign: 'right' }}>{selectedCandle.open.toLocaleString()}</span>

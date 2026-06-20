@@ -14,27 +14,22 @@ interface Props {
   onSelect: (candle: Candle | null) => void
 }
 
-function toTimestamp(iso: string): UTCTimestamp {
-  return (Date.parse(iso) / 1000) as UTCTimestamp
-}
-
 function applyWindow(chart: IChartApi, candles: Candle[], windowHours: number | null) {
   if (candles.length === 0) return
   if (windowHours === null) {
     chart.timeScale().fitContent()
     return
   }
-  const lastTs = toTimestamp(candles[candles.length - 1].time)
-  const fromTs = (lastTs - windowHours * 3600) as UTCTimestamp
-  chart.timeScale().setVisibleRange({ from: fromTs, to: lastTs })
+  const last = candles[candles.length - 1].time as UTCTimestamp
+  const from = (last - windowHours * 3600) as UTCTimestamp
+  chart.timeScale().setVisibleRange({ from, to: last })
 }
 
 export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<IChartApi | null>(null)
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  // keep latest candles accessible inside the stable click handler
-  const candlesRef = useRef<Candle[]>(candles)
+  const chartRef     = useRef<IChartApi | null>(null)
+  const seriesRef    = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const candlesRef   = useRef<Candle[]>(candles)
   candlesRef.current = candles
 
   // create chart once on mount
@@ -61,7 +56,7 @@ export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
     chart.subscribeClick(param => {
       if (!param.time) { onSelect(null); return }
       const clicked = param.time as number
-      const found = candlesRef.current.find(c => toTimestamp(c.time) === clicked) ?? null
+      const found = candlesRef.current.find(c => c.time === clicked) ?? null
       onSelect(found)
     })
 
@@ -70,26 +65,26 @@ export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
     }
     window.addEventListener('resize', handleResize)
 
-    chartRef.current = chart
+    chartRef.current  = chart
     seriesRef.current = series
 
     return () => {
       window.removeEventListener('resize', handleResize)
       chart.remove()
-      chartRef.current = null
+      chartRef.current  = null
       seriesRef.current = null
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // update series data when candles change
+  // update series when candles change
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return
     seriesRef.current.setData(
       candles.map(c => ({
-        time: toTimestamp(c.time),
-        open: c.open,
-        high: c.high,
-        low: c.low,
+        time:  c.time as UTCTimestamp,
+        open:  c.open,
+        high:  c.high,
+        low:   c.low,
         close: c.close,
       }))
     )

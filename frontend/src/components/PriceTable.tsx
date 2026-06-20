@@ -1,4 +1,5 @@
 import type { Candle } from '../api/marketData'
+import { formatTimeJST } from '../api/marketData'
 
 interface Props {
   candles: Candle[]
@@ -7,15 +8,6 @@ interface Props {
 
 const th: React.CSSProperties = { padding: '6px 12px', textAlign: 'right', color: '#94a3b8', fontWeight: 500, borderBottom: '1px solid #334155' }
 const td: React.CSSProperties = { padding: '4px 12px', textAlign: 'right', borderBottom: '1px solid #1e293b' }
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  // JST = UTC+9
-  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
-  const ymd = jst.toISOString().slice(0, 10)
-  const hm  = jst.toISOString().slice(11, 16)
-  return `${ymd} ${hm}`
-}
 
 export function PriceTable({ candles, maxRows = 20 }: Props) {
   if (candles.length === 0) return null
@@ -40,7 +32,7 @@ export function PriceTable({ candles, maxRows = 20 }: Props) {
             const up = c.close >= c.open
             return (
               <tr key={c.time}>
-                <td style={{ ...td, textAlign: 'left', color: '#94a3b8' }}>{formatTime(c.time)}</td>
+                <td style={{ ...td, textAlign: 'left', color: '#94a3b8' }}>{formatTimeJST(c.time)}</td>
                 <td style={td}>{c.open.toLocaleString()}</td>
                 <td style={{ ...td, color: '#22c55e' }}>{c.high.toLocaleString()}</td>
                 <td style={{ ...td, color: '#ef4444' }}>{c.low.toLocaleString()}</td>
