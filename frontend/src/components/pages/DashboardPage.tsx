@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchMarketData, type Candle } from '../../api/marketData'
+import { fetchJournalEntries, type JournalEntry } from '../../api/journal'
 import { defaultWindow } from '../../constants/timeframes'
 import { AppHeader } from '../organisms/AppHeader'
 import { ChartToolbar } from '../organisms/ChartToolbar'
@@ -26,6 +27,7 @@ export function DashboardPage() {
   const [timeframe, setTimeframe] = useState('1m')
   const [windowHours, setWindowHours] = useState<number | null>(defaultWindow('1m'))
   const [candles, setCandles] = useState<Candle[]>([])
+  const [entries, setEntries] = useState<JournalEntry[]>([])
   const [selectedCandle, setSelectedCandle] = useState<Candle | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +36,12 @@ export function DashboardPage() {
     setWindowHours(defaultWindow(tf))
     setSelectedCandle(null)
   }
+
+  const loadEntries = useCallback(() => {
+    fetchJournalEntries(contract)
+      .then(setEntries)
+      .catch(() => setEntries([]))
+  }, [contract])
 
   useEffect(() => {
     setSelectedCandle(null)
@@ -44,6 +52,10 @@ export function DashboardPage() {
       })
       .catch(() => setError('APIに接続できません'))
   }, [contract, timeframe])
+
+  useEffect(() => {
+    loadEntries()
+  }, [loadEntries])
 
   return (
     <DashboardTemplate
@@ -61,10 +73,10 @@ export function DashboardPage() {
         candles.length === 0 && !error ? (
           <EmptyChart />
         ) : (
-          <CandlestickChart candles={candles} windowHours={windowHours} onSelect={setSelectedCandle} />
+          <CandlestickChart candles={candles} entries={entries} timeframe={timeframe} windowHours={windowHours} onSelect={setSelectedCandle} />
         )
       }
-      aside={<CommentPanel contract={contract} selectedCandle={selectedCandle} />}
+      aside={<CommentPanel contract={contract} selectedCandle={selectedCandle} onSubmitted={loadEntries} />}
       table={<PriceTable candles={candles} />}
     />
   )

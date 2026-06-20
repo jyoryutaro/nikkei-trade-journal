@@ -6,6 +6,16 @@ export const TIMEFRAMES = [
   { value: '1d',  label: '日足' },
 ]
 
+// Interval in seconds per timeframe. Mirrors the backend aggregator so entry
+// times can be bucketed to the matching candle on each timeframe.
+export const INTERVAL_SECONDS: Record<string, number> = {
+  '1m': 60,
+  '5m': 300,
+  '30m': 1800,
+  '1h': 3600,
+  '1d': 86400,
+}
+
 export const WINDOW_OPTIONS: Record<string, { label: string; hours: number | null }[]> = {
   '1m':  [
     { label: '30分',  hours: 0.5 },

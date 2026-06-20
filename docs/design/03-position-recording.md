@@ -79,6 +79,31 @@ sequenceDiagram
     end
 ```
 
+## チャート上のマーカー表示
+
+登録済みエントリのうち**金額を持つもの（ポジション記録）**を、チャート上の `(時点, 金額)` に一致するピクセル座標へマーカー表示する。
+
+- 座標変換: `timeScale().timeToCoordinate(time)` と `series.priceToCoordinate(price)` でピクセル座標へ変換し、チャートに重ねた絶対配置のオーバーレイ上に描画する。オーバーレイは canvas より上の `z-index` に置く。
+- マーカーは HTML 要素（canvas 外）のため、パン中は canvas の再描画に1フレーム遅れて追従しラグが出る。これを避けるためチャートの**自由スクロール / ズームは無効化**し（`handleScroll: false` / `handleScale: false`）、表示範囲は時間窓ボタンの `setVisibleRange` で切り替える。範囲変更・リサイズ時に座標を再計算する。
+- 描画領域(pane)外に来るマーカーは描画しない（軸の余白へのはみ出しを防ぐ）。
+- マーカーサイズはバー間隔（`logicalToCoordinate` の差＝ローソク幅）に応じてスケールさせる（ローソクより少し小さめ）。
+- データ／範囲変更直後は価格スケールの自動再計算が未確定なため、`requestAnimationFrame` で1フレーム遅延してから座標を再計算する（縦位置ズレの防止）。
+- 全足種で表示するため、エントリ時刻を現在の足種の集計バケット `floor(time / interval) * interval` に丸めて、その足のバー時刻に一致させる（バックエンドの集計と同じ規則）。該当バケットに足が無い場合のみ非表示。
+- 買い=緑 / 売り=赤のマーカー。**ホバー（フォーカス）すると右側に吹き出し**で 日時・売買/種別・金額・コメントを表示する。
+- コメントのみ（金額なし）のエントリは座標を持たないためマーカー表示の対象外。
+
+```mermaid
+flowchart LR
+    E[登録エントリ一覧] --> P{金額あり?}
+    P -- いいえ --> X[マーカー対象外]
+    P -- はい --> C[timeToCoordinate / priceToCoordinate]
+    C --> M[オーバーレイにマーカー配置]
+    M --> H{ホバー?}
+    H -- はい --> T[右側に吹き出し表示]
+```
+
+実装: organism `CandlestickChart`（座標計算・オーバーレイ）＋ molecule `EntryMarker`（マーカー＋吹き出し）。データは `GET /api/journal-entries?contract=` を `DashboardPage` が取得し、登録成功時に再取得する。
+
 ## 実装の対応
 
 | 層 | 実装 |
