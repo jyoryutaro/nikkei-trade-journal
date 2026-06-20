@@ -124,6 +124,31 @@ curl -X POST "http://localhost:8080/api/market-data/fetch?symbol=%5EN225" \
 
 ブラウザで http://localhost:5173 を開くとチャートとテーブルが表示されます。
 
+> 指数だけでなく先物も取得できます（`symbol` を変えるだけ）。例: `NKD=F`（CME 日経先物）は `symbol=NKD%3DF`。先物は限月コード（例 `2609`）で保存されます。
+
+### 定期取得（ローカル・launchd で15分毎）
+
+`make server` が動いている前提で、[`scripts/fetch-market-data.sh`](scripts/fetch-market-data.sh) を launchd で定期実行できます（既定で `^N225` と `NKD=F` を取得）。
+
+```bash
+# 1) テンプレートをコピーし、ABSOLUTE_REPO_PATH と YOUR_HOME を自分の値に置換
+cp scripts/com.nikkei-trade-journal.fetch.plist.example \
+   ~/Library/LaunchAgents/com.nikkei-trade-journal.fetch.plist
+
+# 2) 登録（15分毎 + 登録時に1回実行）
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nikkei-trade-journal.fetch.plist
+
+# 解除
+launchctl bootout gui/$(id -u)/com.nikkei-trade-journal.fetch
+
+# ログ
+tail -f ~/Library/Logs/nikkei-trade-journal-fetch.log
+```
+
+取得対象や接続先は plist の `EnvironmentVariables`（`SYMBOLS` / `BASE_URL` / `INTERNAL_SECRET`）で変更できます。スクリプト単体実行も可: `SYMBOLS="^N225" ./scripts/fetch-market-data.sh`。
+
+> 注意: これは**ローカルのスケジューラ**です。Mac とバックエンドが起動している間だけ動きます。クラウドから定期実行したい場合は、バックエンドを公開デプロイした上で GitHub Actions 等の cron に切り替えてください。
+
 ### 停止
 
 ```bash
