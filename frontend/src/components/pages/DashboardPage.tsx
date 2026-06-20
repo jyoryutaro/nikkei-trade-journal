@@ -73,7 +73,7 @@ export function DashboardPage() {
         candles.length === 0 && !error ? (
           <EmptyChart />
         ) : (
-          <CandlestickChart candles={candles} entries={entries} windowHours={windowHours} onSelect={setSelectedCandle} />
+          <CandlestickChart candles={candles} entries={entries} timeframe={timeframe} windowHours={windowHours} onSelect={setSelectedCandle} />
         )
       }
       aside={<CommentPanel contract={contract} selectedCandle={selectedCandle} onSubmitted={loadEntries} />}

@@ -9,11 +9,13 @@ import {
 } from 'lightweight-charts'
 import type { Candle } from '../../api/marketData'
 import type { JournalEntry } from '../../api/journal'
+import { INTERVAL_SECONDS } from '../../constants/timeframes'
 import { EntryMarker } from '../molecules/EntryMarker'
 
 interface Props {
   candles: Candle[]
   entries: JournalEntry[]
+  timeframe: string
   windowHours: number | null // null = fit all content
   onSelect: (candle: Candle | null) => void
 }
@@ -35,16 +37,18 @@ function applyWindow(chart: IChartApi, candles: Candle[], windowHours: number | 
   chart.timeScale().setVisibleRange({ from, to: last })
 }
 
-export function CandlestickChart({ candles, entries, windowHours, onSelect }: Props) {
+export function CandlestickChart({ candles, entries, timeframe, windowHours, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartHostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const candlesRef = useRef<Candle[]>(candles)
   const entriesRef = useRef<JournalEntry[]>(entries)
+  const intervalRef = useRef<number>(INTERVAL_SECONDS[timeframe] ?? 60)
   const rafRef = useRef<number | null>(null)
   candlesRef.current = candles
   entriesRef.current = entries
+  intervalRef.current = INTERVAL_SECONDS[timeframe] ?? 60
 
   const [markers, setMarkers] = useState<MarkerPos[]>([])
   const [markerSize, setMarkerSize] = useState(10)
@@ -69,10 +73,14 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
       setMarkerSize(Math.max(3, Math.min(20, Math.round(spacing * 0.65))))
     }
 
+    const interval = intervalRef.current
     const next: MarkerPos[] = []
     for (const e of entriesRef.current) {
       if (e.price == null || e.side === '') continue
-      const x = timeScale.timeToCoordinate(e.time as UTCTimestamp)
+      // snap the entry time to the candle bucket of the current timeframe so it
+      // aligns with a bar on aggregated timeframes (matches the backend buckets)
+      const bucketTime = (Math.floor(e.time / interval) * interval) as UTCTimestamp
+      const x = timeScale.timeToCoordinate(bucketTime)
       const y = series.priceToCoordinate(e.price)
       if (x == null || y == null) continue
       if (x < 0 || x > paneWidth || y < 0 || y > paneHeight) continue
