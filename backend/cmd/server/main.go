@@ -21,10 +21,15 @@ func main() {
 	log.Println("DB connected")
 
 	// Compose the layers: repository (infra) → service (application) → handler (interface).
-	repo := mysql.NewMarketDataRepository(database)
-	svc := application.NewMarketDataService(repo)
-	handler := httpapi.NewMarketDataHandler(svc)
-	router := httpapi.NewRouter(handler)
+	marketRepo := mysql.NewMarketDataRepository(database)
+	marketSvc := application.NewMarketDataService(marketRepo)
+	marketHandler := httpapi.NewMarketDataHandler(marketSvc)
+
+	journalRepo := mysql.NewJournalRepository(database)
+	journalSvc := application.NewJournalService(journalRepo)
+	journalHandler := httpapi.NewJournalHandler(journalSvc)
+
+	router := httpapi.NewRouter(marketHandler, journalHandler)
 
 	addr := getEnv("ADDR", ":8080")
 	log.Printf("server listening on %s", addr)

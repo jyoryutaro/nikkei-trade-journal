@@ -4,13 +4,12 @@
 
 | エンティティ | 主な属性 |
 | --- | --- |
-| User（ユーザー） | uid(Firebase UID), メールアドレス, 表示名, アバターURL, 作成日時 |
-| Trade（トレード） | id, userId, 限月, 方向(long/short), 枚数, IN日時, IN価格, OUT日時, OUT価格, 損益, ステータス |
-| Comment（コメント） | id, userId, 対象(trade/時点), 日時, 本文, タグ |
 | MarketData（相場） | 限月, 足種, 日時(UTC), 始値, 高値, 安値, 終値, 出来高 |
+| JournalEntry（記録） | id, 限月, 対象時点(UTC), 売買(long/short/なし), 種別(open/close), 金額, コメント, 登録日時 |
+| User（ユーザー）※将来 | id, メールアドレス, 表示名, 作成日時（マルチユーザー化時に追加。各レコードに userId を付与） |
 
 - 対象は日経225先物。相場データはメジャーSQ（3/6/9/12月限）の各限月を可能な限り全て保持する（取得不可なら取得できる分で可。[12-open-issues.md](12-open-issues.md) Q-05）。
-- Trade は限月を保持する。数量の単位は「枚（contract）」とする。
+- ポジション記録（JournalEntry）は限月・対象時点・売買方向・種別・金額・コメントを保持する。1レコードがポジション記録またはコメントのみを表す（[設計 03-position-recording](../design/03-position-recording.md)）。
 - 商品種別（ラージ / ミニ / マイクロ、OSE / CME 等）は限定せず、データ取得先に依存する（[12-open-issues.md](12-open-issues.md) Q-06）。
 - データソース: <日経225先物の価格データの取得元。例：API名 / 手入力 / CSV取込。TBD（[12-open-issues.md](12-open-issues.md) Q-01）>
 
@@ -45,13 +44,21 @@ CREATE TABLE market_data (
 1m をベースとしてバックエンドで集計することで、DB スキーマをシンプルに保つ。
 将来的にデータ量が増えマテリアライズが必要になれば再検討する。
 
-## Firestore コレクション構成（案）
+## JournalEntry テーブル設計（現行実装）
 
-```
-users/{uid}
-  trades/{tradeId}
-    comments/{commentId}
+```sql
+CREATE TABLE journal_entries (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  contract   VARCHAR(10)   NOT NULL COMMENT '限月 e.g. 2609',
+  ts         DATETIME      NOT NULL COMMENT '対象時点 (UTC)',
+  side       VARCHAR(5)    NULL     COMMENT 'long | short (NULL = コメントのみ)',
+  trade_type VARCHAR(5)    NULL     COMMENT 'open(新規) | close(決済)',
+  price      DECIMAL(12,2) NULL     COMMENT '約定金額',
+  comment    TEXT          NULL,
+  created_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_contract_ts (contract, ts)
+);
 ```
 
-- ユーザーごとのデータはサブコレクションとして保持し、セキュリティルールで `request.auth.uid == uid` のみ許可する。
-- 相場データ（MarketData）はユーザー横断の共有データ。保存要否・取得方法は [12-open-issues.md](12-open-issues.md) Q-01 参照。
+- `side` が NULL のレコードはコメントのみの記録を表す。検証ルールは[設計 03-position-recording](../design/03-position-recording.md)を参照。
+- マルチユーザー化（[FR-00](04-functional/FR-00-auth.md) / Q-03）の際は `user_id` 列を追加してユーザーごとに分離する。
