@@ -9,4 +9,4 @@
 | チャート | Lightweight Charts |
 | DB | MySQL（ローカル） |
 
-> ⚠️ **要整合**: ここでの選定（Go + MySQL ローカル）は、要求定義で確定済みの **Firebase（Authentication / Firestore / Hosting）** と矛盾する。認証・データ保存・ホスティングの方針を要求定義側と突き合わせて整合させる必要がある（[../requirements/12-open-issues.md](../requirements/12-open-issues.md) Q-07）。
+> 要求定義はこの選定（Go + MySQL）に整合済み（認証=当面なし／保存=MySQL／ホスティング=自前。[../requirements/12-open-issues.md](../requirements/12-open-issues.md) Q-07 解決済）。
