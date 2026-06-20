@@ -13,7 +13,7 @@ function EmptyChart() {
   return (
     <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textGhost, border: `1px solid ${colors.border}`, borderRadius: '8px' }}>
       <span style={{ fontSize: '0.9rem' }}>
-        データがありません — <code>make seed</code> で投入してください
+        データがありません — 取引時間外の可能性があります
       </span>
     </div>
   )
@@ -22,7 +22,7 @@ function EmptyChart() {
 /** The dashboard page: owns state and data fetching, composes organisms into
  * the dashboard template. */
 export function DashboardPage() {
-  const [contract, setContract] = useState('2609')
+  const [contract, setContract] = useState('^N225')
   const [timeframe, setTimeframe] = useState('1m')
   const [windowHours, setWindowHours] = useState<number | null>(defaultWindow('1m'))
   const [candles, setCandles] = useState<Candle[]>([])

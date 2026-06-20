@@ -1,4 +1,4 @@
-.PHONY: up down seed server frontend
+.PHONY: up down server frontend db-console test
 
 up:
 	docker compose up -d
@@ -9,11 +9,14 @@ up:
 down:
 	docker compose down
 
-seed:
-	cd backend && go run ./cmd/seed -data ~/memo/nikkei-testdata.json
-
 server:
-	cd backend && go run ./cmd/server
+	cd backend && INTERNAL_SECRET=$${INTERNAL_SECRET:-dev-secret} go run ./cmd/server
 
 frontend:
 	cd frontend && npm run dev
+
+db-console:
+	docker compose exec db mysql -uapp -papp nikkei_trade
+
+test:
+	cd backend && go test ./...
