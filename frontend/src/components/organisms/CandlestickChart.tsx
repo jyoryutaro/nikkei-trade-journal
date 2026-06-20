@@ -80,6 +80,11 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
       grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
       crosshair: { mode: 1 },
       timeScale: { timeVisible: true, secondsVisible: false },
+      // Scroll/zoom are disabled: the range is driven by the toolbar's window
+      // buttons. This keeps the HTML entry markers perfectly aligned with the
+      // canvas (no per-frame lag during panning).
+      handleScroll: false,
+      handleScale: false,
     })
 
     const series = chart.addSeries(CandlestickSeries, {

@@ -29,8 +29,8 @@ export function EntryMarker({ entry, x, y, hovered, onHover, onLeave }: Props) {
     >
       <div
         style={{
-          width: '14px',
-          height: '14px',
+          width: '10px',
+          height: '10px',
           borderRadius: '50%',
           background: color,
           border: '2px solid #fff',
