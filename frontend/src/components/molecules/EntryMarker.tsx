@@ -7,6 +7,8 @@ interface Props {
   /** Pixel coordinates within the chart overlay. */
   x: number
   y: number
+  /** Marker diameter in px (scales with candle width). */
+  size: number
   hovered: boolean
   onHover: () => void
   onLeave: () => void
@@ -17,9 +19,10 @@ const typeLabel = (t: string) => (t === 'open' ? '新規' : t === 'close' ? '決
 
 /** A chart marker placed at an entry's (time, price) coordinate. On hover it
  * shows a speech-bubble tooltip to the right. */
-export function EntryMarker({ entry, x, y, hovered, onHover, onLeave }: Props) {
+export function EntryMarker({ entry, x, y, size, hovered, onHover, onLeave }: Props) {
   const isLong = entry.side === 'long'
   const color = isLong ? colors.up : colors.down
+  const borderWidth = size >= 8 ? 2 : 1
 
   return (
     <div
@@ -29,13 +32,14 @@ export function EntryMarker({ entry, x, y, hovered, onHover, onLeave }: Props) {
     >
       <div
         style={{
-          width: '10px',
-          height: '10px',
+          width: `${size}px`,
+          height: `${size}px`,
           borderRadius: '50%',
           background: color,
-          border: '2px solid #fff',
+          border: `${borderWidth}px solid #fff`,
           boxShadow: '0 0 0 1px rgba(0,0,0,0.35)',
           cursor: 'pointer',
+          boxSizing: 'border-box',
         }}
       />
 
@@ -43,7 +47,7 @@ export function EntryMarker({ entry, x, y, hovered, onHover, onLeave }: Props) {
         <div
           style={{
             position: 'absolute',
-            left: '16px',
+            left: `${size + 6}px`,
             top: '50%',
             transform: 'translateY(-50%)',
             background: colors.surface,

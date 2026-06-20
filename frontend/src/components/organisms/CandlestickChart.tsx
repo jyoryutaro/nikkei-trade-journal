@@ -5,6 +5,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
+  type Logical,
 } from 'lightweight-charts'
 import type { Candle } from '../../api/marketData'
 import type { JournalEntry } from '../../api/journal'
@@ -41,15 +42,17 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const candlesRef = useRef<Candle[]>(candles)
   const entriesRef = useRef<JournalEntry[]>(entries)
+  const rafRef = useRef<number | null>(null)
   candlesRef.current = candles
   entriesRef.current = entries
 
   const [markers, setMarkers] = useState<MarkerPos[]>([])
+  const [markerSize, setMarkerSize] = useState(10)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
 
-  // Project each priced entry onto pixel coordinates at its (time, price).
-  // Markers outside the data pane (axis gutters / off-screen) are dropped so
-  // they don't appear over the price/time axes.
+  // Project each priced entry onto pixel coordinates at its (time, price), and
+  // size the marker relative to the candle width. Markers outside the data
+  // pane (axis gutters / off-screen) are dropped.
   const recomputeMarkers = useCallback(() => {
     const chart = chartRef.current
     const series = seriesRef.current
@@ -57,6 +60,15 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
     const timeScale = chart.timeScale()
     const paneWidth = timeScale.width()
     const paneHeight = (chartHostRef.current?.clientHeight ?? 0) - timeScale.height()
+
+    // candle pitch in px (uniform across the view) → marker a bit smaller
+    const c0 = timeScale.logicalToCoordinate(0 as Logical)
+    const c1 = timeScale.logicalToCoordinate(1 as Logical)
+    if (c0 != null && c1 != null) {
+      const spacing = Math.abs(c1 - c0)
+      setMarkerSize(Math.max(3, Math.min(20, Math.round(spacing * 0.65))))
+    }
+
     const next: MarkerPos[] = []
     for (const e of entriesRef.current) {
       if (e.price == null || e.side === '') continue
@@ -68,6 +80,16 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
     }
     setMarkers(next)
   }, [])
+
+  // Defer recompute to the next frame so the chart's price autoscale and bar
+  // spacing have settled before we read coordinates.
+  const scheduleRecompute = useCallback(() => {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      recomputeMarkers()
+    })
+  }, [recomputeMarkers])
 
   // create chart once on mount
   useEffect(() => {
@@ -105,12 +127,11 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
       onSelect(found)
     })
 
-    // markers must follow pan/zoom and resize
-    chart.timeScale().subscribeVisibleTimeRangeChange(recomputeMarkers)
+    chart.timeScale().subscribeVisibleTimeRangeChange(scheduleRecompute)
 
     const handleResize = () => {
       if (chartHostRef.current) chart.applyOptions({ width: chartHostRef.current.clientWidth })
-      recomputeMarkers()
+      scheduleRecompute()
     }
     window.addEventListener('resize', handleResize)
 
@@ -119,7 +140,8 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
 
     return () => {
       window.removeEventListener('resize', handleResize)
-      chart.timeScale().unsubscribeVisibleTimeRangeChange(recomputeMarkers)
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(scheduleRecompute)
       chart.remove()
       chartRef.current = null
       seriesRef.current = null
@@ -139,20 +161,20 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
       }))
     )
     applyWindow(chartRef.current, candles, windowHours)
-    recomputeMarkers()
+    scheduleRecompute()
   }, [candles]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // update visible window when windowHours changes independently
   useEffect(() => {
     if (!chartRef.current) return
     applyWindow(chartRef.current, candlesRef.current, windowHours)
-    recomputeMarkers()
-  }, [windowHours, recomputeMarkers])
+    scheduleRecompute()
+  }, [windowHours, scheduleRecompute])
 
   // recompute when entries change
   useEffect(() => {
-    recomputeMarkers()
-  }, [entries, recomputeMarkers])
+    scheduleRecompute()
+  }, [entries, scheduleRecompute])
 
   return (
     <div ref={containerRef} style={{ width: '100%', position: 'relative' }}>
@@ -164,6 +186,7 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
             entry={m.entry}
             x={m.x}
             y={m.y}
+            size={markerSize}
             hovered={hoveredId === m.entry.id}
             onHover={() => setHoveredId(m.entry.id)}
             onLeave={() => setHoveredId(null)}
