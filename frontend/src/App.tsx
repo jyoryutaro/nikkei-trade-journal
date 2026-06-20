@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import { useEffect, useRef, useState } from 'react'
 import { createChart, CandlestickSeries } from 'lightweight-charts'
 
@@ -15,9 +16,30 @@ const API = 'http://localhost:8080'
 
 function App() {
   const chartRef = useRef<HTMLDivElement>(null)
+=======
+import { useEffect, useState } from 'react'
+import { fetchMarketData, type Candle } from './api/marketData'
+import { defaultWindow } from './constants/timeframes'
+import { ContractSelector } from './components/ContractSelector'
+import { ChartToolbar } from './components/ChartToolbar'
+import { CandlestickChart } from './components/CandlestickChart'
+import { CommentPanel } from './components/CommentPanel'
+import { PriceTable } from './components/PriceTable'
+
+export default function App() {
+  const [contract, setContract] = useState('2609')
+  const [timeframe, setTimeframe] = useState('1m')
+  const [windowHours, setWindowHours] = useState<number | null>(defaultWindow('1m'))
+>>>>>>> Stashed changes
   const [candles, setCandles] = useState<Candle[]>([])
   const [contract, setContract] = useState('2506')
   const [error, setError] = useState<string | null>(null)
+
+  const handleTimeframeChange = (tf: string) => {
+    setTimeframe(tf)
+    setWindowHours(defaultWindow(tf))
+    setSelectedCandle(null)
+  }
 
   useEffect(() => {
     fetch(`${API}/api/market-data?contract=${contract}`)
@@ -83,7 +105,17 @@ function App() {
 
       {error && <p style={{ color: '#ef4444' }}>{error}</p>}
 
+<<<<<<< Updated upstream
       <div ref={chartRef} style={{ width: '100%' }} />
+=======
+      {/* chart toolbar */}
+      <ChartToolbar
+        timeframe={timeframe}
+        windowHours={windowHours}
+        onTimeframeChange={handleTimeframeChange}
+        onWindowChange={setWindowHours}
+      />
+>>>>>>> Stashed changes
 
       {candles.length > 0 && (
         <table style={{ marginTop: '24px', borderCollapse: 'collapse', fontSize: '0.85rem', width: '100%' }}>
