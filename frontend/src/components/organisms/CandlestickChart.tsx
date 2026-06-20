@@ -134,6 +134,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
+      color: 'rgba(234,179,8,0.6)', // yellow
     })
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } })
     volumeSeriesRef.current = volumeSeries
@@ -186,7 +187,6 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
       candles.map(c => ({
         time: c.time as UTCTimestamp,
         value: c.volume,
-        color: c.close >= c.open ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)',
       }))
     )
     applyWindow(chartRef.current, candles, windowHours)
