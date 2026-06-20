@@ -30,7 +30,7 @@
 - 時間窓ボタン（足種に応じて変化）でワンクリックで直近 N 分/時間に絞り込める。
 - 対象限月はメジャーSQ（3/6/9/12月限）の各限月を対象とし、取得可能な範囲を表示する（[12-open-issues.md](../12-open-issues.md) Q-05）。
 - 商品種別は限定せず、データ取得先に依存する（[12-open-issues.md](../12-open-issues.md) Q-06）。
-- 価格データの取得元は TBD（[12-open-issues.md](../12-open-issues.md) Q-01）。
+- 価格データの取得元は Yahoo Finance（`NKD=F`）。取得・保存仕様は[要件定義 UC-01](../../spec/use-cases/UC-01-fetch-market-data.md)を参照（[12-open-issues.md](../12-open-issues.md) Q-01）。
 
 ## 受け入れ基準
 
