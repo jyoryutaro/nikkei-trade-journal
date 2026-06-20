@@ -2,41 +2,94 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"flag"
+	"fmt"
 	"log"
-	"math/rand/v2"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// Yahoo Finance v8 chart API shape (minimal)
+type yfResponse struct {
+	Chart struct {
+		Result []struct {
+			Meta struct {
+				Symbol    string `json:"symbol"`
+				ShortName string `json:"shortName"`
+			} `json:"meta"`
+			Timestamps []int64 `json:"timestamp"`
+			Indicators struct {
+				Quote []struct {
+					Open   []*float64 `json:"open"`
+					High   []*float64 `json:"high"`
+					Low    []*float64 `json:"low"`
+					Close  []*float64 `json:"close"`
+					Volume []*int64   `json:"volume"`
+				} `json:"quote"`
+			} `json:"indicators"`
+		} `json:"result"`
+	} `json:"chart"`
+}
+
 func main() {
-	dsn := getEnv("DB_DSN", "app:app@tcp(localhost:3306)/nikkei_trade?parseTime=true&loc=Asia%2FTokyo")
+	dataPath := flag.String("data", "", "path to Yahoo Finance v8 JSON file")
+	contract := flag.String("contract", "", "contract code e.g. 2609 (auto-detected from shortName if empty)")
+	timeframe := flag.String("timeframe", "1m", "timeframe e.g. 1m, 5m, 1d")
+	flag.Parse()
+
+	if *dataPath == "" {
+		log.Fatal("usage: seed -data <path-to-json> [-contract 2609] [-timeframe 1m]")
+	}
+
+	raw, err := os.ReadFile(*dataPath)
+	if err != nil {
+		log.Fatalf("read file: %v", err)
+	}
+
+	var resp yfResponse
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		log.Fatalf("parse json: %v", err)
+	}
+
+	if len(resp.Chart.Result) == 0 {
+		log.Fatal("no results in JSON")
+	}
+	result := resp.Chart.Result[0]
+
+	ct := *contract
+	if ct == "" {
+		ct = contractFromShortName(result.Meta.ShortName)
+	}
+	if ct == "" {
+		log.Fatalf("could not determine contract from shortName %q — pass -contract explicitly", result.Meta.ShortName)
+	}
+
+	if len(result.Indicators.Quote) == 0 {
+		log.Fatal("no quote data")
+	}
+	q := result.Indicators.Quote[0]
+
+	dsn := getEnv("DB_DSN", "app:app@tcp(localhost:3306)/nikkei_trade?parseTime=true")
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("db open: %v", err)
 	}
 	defer db.Close()
-
 	if err := db.Ping(); err != nil {
 		log.Fatalf("db ping: %v", err)
 	}
-
-	const contract = "2506"
-	jst := time.FixedZone("JST", 9*60*60)
-
-	// 2025-04-01 08:45 JST から 1日足を60本生成
-	base := time.Date(2025, 4, 1, 0, 0, 0, 0, jst)
-	price := 35000.0
 
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalf("begin: %v", err)
 	}
-
 	stmt, err := tx.Prepare(`
-		INSERT INTO market_data (contract, ts, open, high, low, close, volume)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO market_data (contract, timeframe, ts, open, high, low, close, volume)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON DUPLICATE KEY UPDATE open=VALUES(open), high=VALUES(high),
 		  low=VALUES(low), close=VALUES(close), volume=VALUES(volume)
 	`)
@@ -45,34 +98,48 @@ func main() {
 	}
 	defer stmt.Close()
 
-	for i := range 60 {
-		ts := base.AddDate(0, 0, i)
-		// skip weekends
-		if ts.Weekday() == time.Saturday || ts.Weekday() == time.Sunday {
-			price += (rand.Float64()-0.5)*200
+	inserted := 0
+	for i, ts := range result.Timestamps {
+		if i >= len(q.Open) || q.Open[i] == nil || q.High[i] == nil || q.Low[i] == nil || q.Close[i] == nil {
 			continue
 		}
-		chg := (rand.Float64() - 0.45) * 400
-		open := round(price)
-		close_ := round(price + chg)
-		high := round(max(open, close_) + rand.Float64()*150)
-		low := round(min(open, close_) - rand.Float64()*150)
-		vol := int64(1000 + rand.IntN(5000))
-
-		if _, err := stmt.Exec(contract, ts, open, high, low, close_, vol); err != nil {
+		vol := int64(0)
+		if i < len(q.Volume) && q.Volume[i] != nil {
+			vol = *q.Volume[i]
+		}
+		t := time.Unix(ts, 0).UTC()
+		if _, err := stmt.Exec(ct, *timeframe, t, *q.Open[i], *q.High[i], *q.Low[i], *q.Close[i], vol); err != nil {
 			tx.Rollback()
 			log.Fatalf("insert row %d: %v", i, err)
 		}
-		price = close_
+		inserted++
 	}
 
 	if err := tx.Commit(); err != nil {
 		log.Fatalf("commit: %v", err)
 	}
-	log.Printf("seeded %s market data", contract)
+	log.Printf("seeded %d bars → contract=%s timeframe=%s", inserted, ct, *timeframe)
 }
 
-func round(f float64) float64 { return float64(int(f*10+0.5)) / 10 }
+// contractFromShortName extracts a YYMM code from strings like
+// "Nikkei/USD Futures,Sep-2026" → "2609"
+func contractFromShortName(name string) string {
+	monthMap := map[string]string{
+		"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04",
+		"May": "05", "Jun": "06", "Jul": "07", "Aug": "08",
+		"Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12",
+	}
+	for _, part := range strings.FieldsFunc(name, func(r rune) bool { return r == ' ' || r == ',' }) {
+		if len(part) == 8 && part[3] == '-' {
+			mon := part[:3]
+			year := part[4:]
+			if m, ok := monthMap[mon]; ok && len(year) == 4 {
+				return fmt.Sprintf("%s%s", year[2:], m)
+			}
+		}
+	}
+	return ""
+}
 
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
