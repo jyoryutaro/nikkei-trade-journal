@@ -14,3 +14,4 @@
 | 0.8 | 2026-06-20 | 城竜太郎 | ドキュメントを3階層化（要求定義/要件定義/設計書）。UC-01 を要件定義(docs/spec)へ、tech-stack を設計書(docs/design)へ再配置。技術選定とFirebaseの矛盾を Q-07 として追加 |
 | 0.9 | 2026-06-20 | 城竜太郎 | 要求定義を Go + MySQL 構成へ整合（Q-07解決）。認証=当面なし(ローカル単一ユーザー)/保存=MySQL/ホスティング=自前 に変更。FR-00・FR-07 を将来課題化、データソースを Yahoo Finance(NKD=F) に確定 |
 | 0.10 | 2026-06-20 | 城竜太郎 | FR-01 の価格データ取得元を Yahoo Finance(NKD=F)/UC-01 参照に明記（TBD解消）。設計書にアーキテクチャ(DDD / Atomic Design)を追加（[design/02-architecture.md](../design/02-architecture.md)） |
+| 0.11 | 2026-06-20 | 城竜太郎 | FR-02 実装（ポジション記録／コメントのみ記録）。`journal_entries` テーブルを追加しデータ要件を更新、設計書 03-position-recording を追加（mermaid フロー/シーケンス）。残存していた Firestore 記述を削除 |

@@ -1,14 +1,17 @@
 import type { CSSProperties } from 'react'
 import type { Candle } from '../../api/marketData'
 import { OhlcvSummary } from '../molecules/OhlcvSummary'
+import { TradeEntryForm } from './TradeEntryForm'
 import { colors } from '../../theme'
 
 interface Props {
+  contract: string
   selectedCandle: Candle | null
+  onSubmitted?: () => void
 }
 
 const panelStyle: CSSProperties = {
-  width: '260px',
+  width: '280px',
   flexShrink: 0,
   background: colors.panel,
   border: `1px solid ${colors.border}`,
@@ -26,11 +29,12 @@ const labelStyle: CSSProperties = {
   letterSpacing: '0.05em',
 }
 
-/** Side panel showing the selected candle and a (WIP) comment editor. */
-export function CommentPanel({ selectedCandle }: Props) {
+/** Side panel: shows the selected candle and the entry form (position or
+ * comment-only). */
+export function CommentPanel({ contract, selectedCandle, onSubmitted }: Props) {
   return (
     <div style={panelStyle}>
-      <p style={{ ...labelStyle, marginBottom: '4px' }}>コメント</p>
+      <p style={{ ...labelStyle, marginBottom: '4px' }}>記録</p>
 
       {!selectedCandle ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: colors.textGhost, textAlign: 'center', padding: '24px 0' }}>
@@ -44,39 +48,7 @@ export function CommentPanel({ selectedCandle }: Props) {
       ) : (
         <>
           <OhlcvSummary candle={selectedCandle} />
-
-          <textarea
-            placeholder="この時点にコメントを追加..."
-            rows={5}
-            style={{
-              background: colors.surface,
-              color: colors.text,
-              border: `1px solid ${colors.borderStrong}`,
-              borderRadius: '6px',
-              padding: '8px 10px',
-              fontSize: '0.82rem',
-              resize: 'vertical',
-              fontFamily: 'inherit',
-              lineHeight: 1.6,
-            }}
-          />
-
-          <button
-            disabled
-            title="コメント保存機能は準備中です"
-            style={{
-              padding: '8px',
-              borderRadius: '6px',
-              border: 'none',
-              background: colors.accentBlueDeep,
-              color: '#93c5fd',
-              fontSize: '0.82rem',
-              cursor: 'not-allowed',
-              opacity: 0.5,
-            }}
-          >
-            保存（準備中）
-          </button>
+          <TradeEntryForm contract={contract} candle={selectedCandle} onSubmitted={onSubmitted} />
         </>
       )}
     </div>

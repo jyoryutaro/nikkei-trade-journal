@@ -64,7 +64,7 @@ export function DashboardPage() {
           <CandlestickChart candles={candles} windowHours={windowHours} onSelect={setSelectedCandle} />
         )
       }
-      aside={<CommentPanel selectedCandle={selectedCandle} />}
+      aside={<CommentPanel contract={contract} selectedCandle={selectedCandle} />}
       table={<PriceTable candles={candles} />}
     />
   )
