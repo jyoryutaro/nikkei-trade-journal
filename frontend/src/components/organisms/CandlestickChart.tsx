@@ -6,11 +6,12 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
 } from 'lightweight-charts'
-import type { Candle } from '../api/marketData'
+import type { Candle } from '../../api/marketData'
+import { colors } from '../../theme'
 
 interface Props {
   candles: Candle[]
-  windowHours: number | null  // null = fit all content
+  windowHours: number | null // null = fit all content
   onSelect: (candle: Candle | null) => void
 }
 
@@ -27,9 +28,9 @@ function applyWindow(chart: IChartApi, candles: Candle[], windowHours: number | 
 
 export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef     = useRef<IChartApi | null>(null)
-  const seriesRef    = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  const candlesRef   = useRef<Candle[]>(candles)
+  const chartRef = useRef<IChartApi | null>(null)
+  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const candlesRef = useRef<Candle[]>(candles)
   candlesRef.current = candles
 
   // create chart once on mount
@@ -39,22 +40,25 @@ export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 420,
-      layout: { background: { color: '#0f172a' }, textColor: '#e2e8f0' },
-      grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+      layout: { background: { color: colors.chartBg }, textColor: colors.text },
+      grid: { vertLines: { color: colors.surface }, horzLines: { color: colors.surface } },
       crosshair: { mode: 1 },
       timeScale: { timeVisible: true, secondsVisible: false },
     })
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
+      upColor: colors.up,
+      downColor: colors.down,
       borderVisible: false,
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+      wickUpColor: colors.up,
+      wickDownColor: colors.down,
     })
 
     chart.subscribeClick(param => {
-      if (!param.time) { onSelect(null); return }
+      if (!param.time) {
+        onSelect(null)
+        return
+      }
       const clicked = param.time as number
       const found = candlesRef.current.find(c => c.time === clicked) ?? null
       onSelect(found)
@@ -65,13 +69,13 @@ export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
     }
     window.addEventListener('resize', handleResize)
 
-    chartRef.current  = chart
+    chartRef.current = chart
     seriesRef.current = series
 
     return () => {
       window.removeEventListener('resize', handleResize)
       chart.remove()
-      chartRef.current  = null
+      chartRef.current = null
       seriesRef.current = null
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -81,10 +85,10 @@ export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
     if (!seriesRef.current || !chartRef.current) return
     seriesRef.current.setData(
       candles.map(c => ({
-        time:  c.time as UTCTimestamp,
-        open:  c.open,
-        high:  c.high,
-        low:   c.low,
+        time: c.time as UTCTimestamp,
+        open: c.open,
+        high: c.high,
+        low: c.low,
         close: c.close,
       }))
     )

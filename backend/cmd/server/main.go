@@ -1,48 +1,36 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/min-legomain/nikkei-trade-journal/backend/internal/handler"
+	"github.com/min-legomain/nikkei-trade-journal/backend/internal/application"
+	"github.com/min-legomain/nikkei-trade-journal/backend/internal/infrastructure/db"
+	"github.com/min-legomain/nikkei-trade-journal/backend/internal/infrastructure/persistence/mysql"
+	httpapi "github.com/min-legomain/nikkei-trade-journal/backend/internal/interfaces/http"
 )
 
 func main() {
 	dsn := getEnv("DB_DSN", "app:app@tcp(localhost:3306)/nikkei_trade?parseTime=true&loc=Asia%2FTokyo")
-	db, err := sql.Open("mysql", dsn)
+	database, err := db.Open(dsn)
 	if err != nil {
-		log.Fatalf("db open: %v", err)
+		log.Fatalf("db: %v", err)
 	}
-	defer db.Close()
-
-	if err := db.Ping(); err != nil {
-		log.Fatalf("db ping: %v", err)
-	}
+	defer database.Close()
 	log.Println("DB connected")
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/market-data", handler.MarketData(db))
+	// Compose the layers: repository (infra) → service (application) → handler (interface).
+	repo := mysql.NewMarketDataRepository(database)
+	svc := application.NewMarketDataService(repo)
+	handler := httpapi.NewMarketDataHandler(svc)
+	router := httpapi.NewRouter(handler)
 
 	addr := getEnv("ADDR", ":8080")
 	log.Printf("server listening on %s", addr)
-	if err := http.ListenAndServe(addr, cors(mux)); err != nil {
+	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatalf("server: %v", err)
 	}
-}
-
-func cors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func getEnv(key, fallback string) string {
