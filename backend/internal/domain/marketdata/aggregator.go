@@ -29,21 +29,21 @@ func Aggregate(candles []Candle, tf Timeframe) []Candle {
 	var keys []int64
 
 	for _, c := range candles {
-		k := (c.Time.Unix() / interval) * interval
+		k := (c.Time().Unix() / interval) * interval
 		bkt, exists := buckets[k]
 		if !exists {
-			bkt = &bucket{open: c.Open, high: c.High, low: c.Low}
+			bkt = &bucket{open: c.Open(), high: c.High(), low: c.Low()}
 			buckets[k] = bkt
 			keys = append(keys, k)
 		}
-		if c.High > bkt.high {
-			bkt.high = c.High
+		if c.High() > bkt.high {
+			bkt.high = c.High()
 		}
-		if c.Low < bkt.low {
-			bkt.low = c.Low
+		if c.Low() < bkt.low {
+			bkt.low = c.Low()
 		}
-		bkt.close = c.Close
-		bkt.volume += c.Volume
+		bkt.close = c.Close()
+		bkt.volume += c.Volume()
 	}
 
 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
@@ -51,14 +51,7 @@ func Aggregate(candles []Candle, tf Timeframe) []Candle {
 	result := make([]Candle, len(keys))
 	for i, k := range keys {
 		bkt := buckets[k]
-		result[i] = Candle{
-			Time:   time.Unix(k, 0).UTC(),
-			Open:   bkt.open,
-			High:   bkt.high,
-			Low:    bkt.low,
-			Close:  bkt.close,
-			Volume: bkt.volume,
-		}
+		result[i] = NewCandle(time.Unix(k, 0).UTC(), bkt.open, bkt.high, bkt.low, bkt.close, bkt.volume)
 	}
 	return result
 }

@@ -4,6 +4,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/min-legomain/nikkei-trade-journal/backend/internal/domain/marketdata"
 )
@@ -41,11 +42,13 @@ func (r *MarketDataRepository) FindBaseCandles(ctx context.Context, contract str
 
 	var candles []marketdata.Candle
 	for rows.Next() {
-		var c marketdata.Candle
-		if err := rows.Scan(&c.Time, &c.Open, &c.High, &c.Low, &c.Close, &c.Volume); err != nil {
+		var t time.Time
+		var open, high, low, close float64
+		var volume int64
+		if err := rows.Scan(&t, &open, &high, &low, &close, &volume); err != nil {
 			return nil, err
 		}
-		candles = append(candles, c)
+		candles = append(candles, marketdata.NewCandle(t, open, high, low, close, volume))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -74,8 +77,8 @@ func (r *MarketDataRepository) BulkUpsert(ctx context.Context, contract string, 
 
 	count := 0
 	for _, c := range candles {
-		if _, err := stmt.ExecContext(ctx, contract, tf.String(), c.Time.UTC(),
-			c.Open, c.High, c.Low, c.Close, c.Volume); err != nil {
+		if _, err := stmt.ExecContext(ctx, contract, tf.String(), c.Time().UTC(),
+			c.Open(), c.High(), c.Low(), c.Close(), c.Volume()); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
