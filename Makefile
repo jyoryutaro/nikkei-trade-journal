@@ -10,7 +10,7 @@ down:
 	docker compose down
 
 seed:
-	cd backend && go run ./cmd/seed
+	cd backend && go run ./cmd/seed -data ~/memo/nikkei-testdata.json
 
 server:
 	cd backend && go run ./cmd/server

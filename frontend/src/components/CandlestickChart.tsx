@@ -1,0 +1,106 @@
+import { useEffect, useRef } from 'react'
+import {
+  createChart,
+  CandlestickSeries,
+  type IChartApi,
+  type ISeriesApi,
+  type UTCTimestamp,
+} from 'lightweight-charts'
+import type { Candle } from '../api/marketData'
+
+interface Props {
+  candles: Candle[]
+  windowHours: number | null  // null = fit all content
+  onSelect: (candle: Candle | null) => void
+}
+
+function toTimestamp(iso: string): UTCTimestamp {
+  return (Date.parse(iso) / 1000) as UTCTimestamp
+}
+
+function applyWindow(chart: IChartApi, candles: Candle[], windowHours: number | null) {
+  if (candles.length === 0) return
+  if (windowHours === null) {
+    chart.timeScale().fitContent()
+    return
+  }
+  const lastTs = toTimestamp(candles[candles.length - 1].time)
+  const fromTs = (lastTs - windowHours * 3600) as UTCTimestamp
+  chart.timeScale().setVisibleRange({ from: fromTs, to: lastTs })
+}
+
+export function CandlestickChart({ candles, windowHours, onSelect }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<IChartApi | null>(null)
+  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  // keep latest candles accessible inside the stable click handler
+  const candlesRef = useRef<Candle[]>(candles)
+  candlesRef.current = candles
+
+  // create chart once on mount
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
+      height: 420,
+      layout: { background: { color: '#0f172a' }, textColor: '#e2e8f0' },
+      grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+      crosshair: { mode: 1 },
+      timeScale: { timeVisible: true, secondsVisible: false },
+    })
+
+    const series = chart.addSeries(CandlestickSeries, {
+      upColor: '#22c55e',
+      downColor: '#ef4444',
+      borderVisible: false,
+      wickUpColor: '#22c55e',
+      wickDownColor: '#ef4444',
+    })
+
+    chart.subscribeClick(param => {
+      if (!param.time) { onSelect(null); return }
+      const clicked = param.time as number
+      const found = candlesRef.current.find(c => toTimestamp(c.time) === clicked) ?? null
+      onSelect(found)
+    })
+
+    const handleResize = () => {
+      if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth })
+    }
+    window.addEventListener('resize', handleResize)
+
+    chartRef.current = chart
+    seriesRef.current = series
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      chart.remove()
+      chartRef.current = null
+      seriesRef.current = null
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // update series data when candles change
+  useEffect(() => {
+    if (!seriesRef.current || !chartRef.current) return
+    seriesRef.current.setData(
+      candles.map(c => ({
+        time: toTimestamp(c.time),
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }))
+    )
+    applyWindow(chartRef.current, candles, windowHours)
+  }, [candles]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // update visible window when windowHours changes independently
+  useEffect(() => {
+    if (!chartRef.current) return
+    applyWindow(chartRef.current, candlesRef.current, windowHours)
+  }, [windowHours])
+
+  return <div ref={containerRef} style={{ width: '100%' }} />
+}

@@ -8,25 +8,31 @@ import (
 )
 
 type candlestick struct {
-	Contract string    `json:"contract"`
-	Time     time.Time `json:"time"`
-	Open     float64   `json:"open"`
-	High     float64   `json:"high"`
-	Low      float64   `json:"low"`
-	Close    float64   `json:"close"`
-	Volume   int64     `json:"volume"`
+	Contract  string    `json:"contract"`
+	Timeframe string    `json:"timeframe"`
+	Time      time.Time `json:"time"`
+	Open      float64   `json:"open"`
+	High      float64   `json:"high"`
+	Low       float64   `json:"low"`
+	Close     float64   `json:"close"`
+	Volume    int64     `json:"volume"`
 }
 
 func MarketData(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contract := r.URL.Query().Get("contract")
-		query := `SELECT contract, ts, open, high, low, close, volume FROM market_data`
-		args := []any{}
+		timeframe := r.URL.Query().Get("timeframe")
+		if timeframe == "" {
+			timeframe = "1m"
+		}
+
+		query := `SELECT contract, timeframe, ts, open, high, low, close, volume FROM market_data WHERE timeframe = ?`
+		args := []any{timeframe}
 		if contract != "" {
-			query += ` WHERE contract = ?`
+			query += ` AND contract = ?`
 			args = append(args, contract)
 		}
-		query += ` ORDER BY ts ASC LIMIT 500`
+		query += ` ORDER BY ts ASC LIMIT 2000`
 
 		rows, err := db.QueryContext(r.Context(), query, args...)
 		if err != nil {
@@ -38,7 +44,7 @@ func MarketData(db *sql.DB) http.HandlerFunc {
 		results := []candlestick{}
 		for rows.Next() {
 			var c candlestick
-			if err := rows.Scan(&c.Contract, &c.Time, &c.Open, &c.High, &c.Low, &c.Close, &c.Volume); err != nil {
+			if err := rows.Scan(&c.Contract, &c.Timeframe, &c.Time, &c.Open, &c.High, &c.Low, &c.Close, &c.Volume); err != nil {
 				http.Error(w, "scan error", http.StatusInternalServerError)
 				return
 			}
