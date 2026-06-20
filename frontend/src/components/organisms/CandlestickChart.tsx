@@ -48,16 +48,22 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
   const [hoveredId, setHoveredId] = useState<number | null>(null)
 
   // Project each priced entry onto pixel coordinates at its (time, price).
+  // Markers outside the data pane (axis gutters / off-screen) are dropped so
+  // they don't appear over the price/time axes.
   const recomputeMarkers = useCallback(() => {
     const chart = chartRef.current
     const series = seriesRef.current
     if (!chart || !series) return
+    const timeScale = chart.timeScale()
+    const paneWidth = timeScale.width()
+    const paneHeight = (chartHostRef.current?.clientHeight ?? 0) - timeScale.height()
     const next: MarkerPos[] = []
     for (const e of entriesRef.current) {
       if (e.price == null || e.side === '') continue
-      const x = chart.timeScale().timeToCoordinate(e.time as UTCTimestamp)
+      const x = timeScale.timeToCoordinate(e.time as UTCTimestamp)
       const y = series.priceToCoordinate(e.price)
       if (x == null || y == null) continue
+      if (x < 0 || x > paneWidth || y < 0 || y > paneHeight) continue
       next.push({ entry: e, x, y })
     }
     setMarkers(next)
@@ -146,7 +152,7 @@ export function CandlestickChart({ candles, entries, windowHours, onSelect }: Pr
   return (
     <div ref={containerRef} style={{ width: '100%', position: 'relative' }}>
       <div ref={chartHostRef} style={{ width: '100%' }} />
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}>
         {markers.map(m => (
           <EntryMarker
             key={m.entry.id}
