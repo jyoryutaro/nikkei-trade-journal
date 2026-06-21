@@ -6,6 +6,7 @@ import { colors } from '../../theme'
 
 interface Props {
   contract: string
+  timeframe: string
   selectedCandle: Candle | null
   onSubmitted?: () => void
 }
@@ -31,7 +32,7 @@ const labelStyle: CSSProperties = {
 
 /** Side panel: shows the selected candle and the entry form (position or
  * comment-only). */
-export function CommentPanel({ contract, selectedCandle, onSubmitted }: Props) {
+export function CommentPanel({ contract, timeframe, selectedCandle, onSubmitted }: Props) {
   return (
     <div style={panelStyle}>
       <p style={{ ...labelStyle, marginBottom: '4px' }}>記録</p>
@@ -48,7 +49,15 @@ export function CommentPanel({ contract, selectedCandle, onSubmitted }: Props) {
       ) : (
         <>
           <OhlcvSummary candle={selectedCandle} />
-          <TradeEntryForm contract={contract} candle={selectedCandle} onSubmitted={onSubmitted} />
+          {/* key remounts the form (resetting fields/default time) when the
+              selected candle or timeframe changes */}
+          <TradeEntryForm
+            key={`${selectedCandle.time}-${timeframe}`}
+            contract={contract}
+            candle={selectedCandle}
+            timeframe={timeframe}
+            onSubmitted={onSubmitted}
+          />
         </>
       )}
     </div>

@@ -1,15 +1,18 @@
 import { useState } from 'react'
-import type { Candle } from '../../api/marketData'
+import { type Candle, toJstInputValue, fromJstInputValue } from '../../api/marketData'
 import { createJournalEntry, type Side, type TradeType } from '../../api/journal'
 import { RadioGroup } from '../molecules/RadioGroup'
 import { NumberInput } from '../atoms/NumberInput'
 import { TextArea } from '../atoms/TextArea'
+import { DateTimeInput } from '../atoms/DateTimeInput'
 import { Button } from '../atoms/Button'
 import { colors } from '../../theme'
 
 interface Props {
   contract: string
   candle: Candle
+  /** Current timeframe; the time picker is shown for anything but 1m. */
+  timeframe: string
   onSubmitted?: () => void
 }
 
@@ -27,13 +30,18 @@ const TRADE_TYPE_OPTIONS: { value: TradeType; label: string }[] = [
 /** Form for recording a position (side / trade type / price) or a comment-only
  * note. Position fields appear only once a side is chosen, and the submit
  * button is disabled until the entry is valid. */
-export function TradeEntryForm({ contract, candle, onSubmitted }: Props) {
+export function TradeEntryForm({ contract, candle, timeframe, onSubmitted }: Props) {
   const [side, setSide] = useState<Side>('')
   const [tradeType, setTradeType] = useState<TradeType>('')
   const [price, setPrice] = useState('')
   const [comment, setComment] = useState('')
+  // editable time (JST), defaults to the candle's start; only used for non-1m
+  const [timeStr, setTimeStr] = useState(() => toJstInputValue(candle.time))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // For 1m the candle IS the minute, so the time is fixed to candle.time.
+  const editableTime = timeframe !== '1m'
 
   const hasPosition = side !== ''
   const priceNum = Number(price)
@@ -56,6 +64,7 @@ export function TradeEntryForm({ contract, candle, onSubmitted }: Props) {
     setTradeType('')
     setPrice('')
     setComment('')
+    setTimeStr(toJstInputValue(candle.time))
   }
 
   const handleSubmit = async () => {
@@ -65,7 +74,7 @@ export function TradeEntryForm({ contract, candle, onSubmitted }: Props) {
     try {
       await createJournalEntry({
         contract,
-        time: candle.time,
+        time: editableTime ? fromJstInputValue(timeStr) : candle.time,
         side,
         tradeType: hasPosition ? tradeType : '',
         price: hasPosition ? priceNum : null,
@@ -82,6 +91,13 @@ export function TradeEntryForm({ contract, candle, onSubmitted }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {editableTime && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>日時（JST・既定はローソク開始）</span>
+          <DateTimeInput value={timeStr} onChange={setTimeStr} />
+        </div>
+      )}
+
       <RadioGroup label="売買" name="side" options={SIDE_OPTIONS} value={side} onChange={handleSideChange} />
 
       {hasPosition && (

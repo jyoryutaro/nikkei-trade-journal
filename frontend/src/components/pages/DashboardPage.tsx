@@ -93,7 +93,7 @@ export function DashboardPage() {
           <CandlestickChart candles={candles} entries={entries} timeframe={timeframe} windowHours={windowHours} onSelect={setSelectedCandle} />
         )
       }
-      aside={<CommentPanel contract={contract} selectedCandle={selectedCandle} onSubmitted={loadEntries} />}
+      aside={<CommentPanel contract={contract} timeframe={timeframe} selectedCandle={selectedCandle} onSubmitted={loadEntries} />}
     />
   )
 }
