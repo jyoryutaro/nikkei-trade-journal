@@ -93,17 +93,16 @@ export function TradeEntryForm({ contract, candle, timeframe, onSubmitted }: Pro
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {editableTime && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>時刻（JST・既定はローソク開始）</span>
-          <TimeInput value={timeStr} onChange={setTimeStr} />
-        </div>
-      )}
-
       <RadioGroup label="売買" name="side" options={SIDE_OPTIONS} value={side} onChange={handleSideChange} />
 
       {hasPosition && (
         <>
+          {editableTime && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>時刻（JST・既定はローソク開始）</span>
+              <TimeInput value={timeStr} onChange={setTimeStr} />
+            </div>
+          )}
           <RadioGroup label="種別" name="tradeType" options={TRADE_TYPE_OPTIONS} value={tradeType} onChange={setTradeType} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>金額</span>
