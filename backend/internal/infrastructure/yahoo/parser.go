@@ -10,6 +10,10 @@ import (
 	"github.com/min-legomain/nikkei-trade-journal/backend/internal/domain/marketdata"
 )
 
+// jst is JST (UTC+9). Used to convert Yahoo Unix timestamps to JST clock values
+// that are then stored as "fake UTC" so lightweight-charts displays JST times.
+var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 // chartResponse is the minimal subset of the Yahoo Finance v8 chart API.
 type chartResponse struct {
 	Chart struct {
@@ -57,7 +61,9 @@ func ParseChart(raw []byte) (contract string, candles []marketdata.Candle, err e
 	var lastClose float64
 	var havePrev bool
 	for i, ts := range result.Timestamps {
-		t := time.Unix(ts, 0).UTC()
+		jstTime := time.Unix(ts, 0).In(jst)
+		t := time.Date(jstTime.Year(), jstTime.Month(), jstTime.Day(),
+			jstTime.Hour(), jstTime.Minute(), jstTime.Second(), 0, time.UTC)
 
 		if i < len(q.Open) && q.Open[i] != nil && q.High[i] != nil && q.Low[i] != nil && q.Close[i] != nil {
 			var vol int64

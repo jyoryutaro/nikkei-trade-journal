@@ -46,8 +46,11 @@ func TestParseChart_ValidJSONProducesContractAndCandles(t *testing.T) {
 		t.Fatalf("len(candles): got %d, want 2", len(candles))
 	}
 	first := candles[0]
-	if want := time.Unix(1000000, 0).UTC(); first.Time() != want {
-		t.Errorf("Time: got %v, want %v", first.Time(), want)
+	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
+	jstT := time.Unix(1000000, 0).In(jst)
+	wantTime := time.Date(jstT.Year(), jstT.Month(), jstT.Day(), jstT.Hour(), jstT.Minute(), jstT.Second(), 0, time.UTC)
+	if first.Time() != wantTime {
+		t.Errorf("Time: got %v, want %v", first.Time(), wantTime)
 	}
 	if first.Open() != 25000.0 {
 		t.Errorf("Open: got %v, want 25000.0", first.Open())
@@ -91,8 +94,11 @@ func TestParseChart_NilOHLCForwardFilled(t *testing.T) {
 		t.Fatalf("expected 2 candles (nil row forward-filled), got %d", len(candles))
 	}
 	filled := candles[1]
-	if want := time.Unix(1000060, 0).UTC(); filled.Time() != want {
-		t.Errorf("Time: got %v, want %v", filled.Time(), want)
+	jst2 := time.FixedZone("Asia/Tokyo", 9*60*60)
+	jstT2 := time.Unix(1000060, 0).In(jst2)
+	wantFilled := time.Date(jstT2.Year(), jstT2.Month(), jstT2.Day(), jstT2.Hour(), jstT2.Minute(), jstT2.Second(), 0, time.UTC)
+	if filled.Time() != wantFilled {
+		t.Errorf("Time: got %v, want %v", filled.Time(), wantFilled)
 	}
 	prevClose := 25050.0
 	if filled.Open() != prevClose || filled.High() != prevClose || filled.Low() != prevClose || filled.Close() != prevClose {
