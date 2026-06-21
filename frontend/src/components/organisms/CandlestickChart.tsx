@@ -25,6 +25,7 @@ interface MarkerPos {
   entry: JournalEntry
   x: number
   y: number
+  isMemo: boolean
 }
 
 function applyWindow(chart: IChartApi, candles: Candle[], windowHours: number | null) {
@@ -79,15 +80,21 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
     const interval = intervalRef.current
     const next: MarkerPos[] = []
     for (const e of entriesRef.current) {
-      if (e.price == null || e.side === '') continue
       // snap the entry time to the candle bucket of the current timeframe so it
       // aligns with a bar on aggregated timeframes (matches the backend buckets)
       const bucketTime = (Math.floor(e.time / interval) * interval) as UTCTimestamp
       const x = timeScale.timeToCoordinate(bucketTime)
-      const y = series.priceToCoordinate(e.price)
-      if (x == null || y == null) continue
-      if (x < 0 || x > paneWidth || y < 0 || y > paneHeight) continue
-      next.push({ entry: e, x, y })
+      if (x == null || x < 0 || x > paneWidth) continue
+
+      if (e.side === '') {
+        // memo-only: place at the bottom of the candle pane
+        next.push({ entry: e, x, y: paneHeight - 8, isMemo: true })
+      } else {
+        if (e.price == null) continue
+        const y = series.priceToCoordinate(e.price)
+        if (y == null || y < 0 || y > paneHeight) continue
+        next.push({ entry: e, x, y, isMemo: false })
+      }
     }
     setMarkers(next)
   }, [])
@@ -109,7 +116,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
     const chart = createChart(chartHostRef.current, {
       width: chartHostRef.current.clientWidth,
       height: 420,
-      layout: { background: { color: '#0f172a' }, textColor: '#e2e8f0' },
+      layout: { background: { color: '#0f172a' }, textColor: '#e2e8f0', panes: { enableResize: false } },
       grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
       crosshair: { mode: 1 },
       timeScale: { timeVisible: true, secondsVisible: false },
@@ -215,6 +222,7 @@ export function CandlestickChart({ candles, entries, timeframe, windowHours, onS
             x={m.x}
             y={m.y}
             size={markerSize}
+            isMemo={m.isMemo}
             hovered={hoveredId === m.entry.id}
             onHover={() => setHoveredId(m.entry.id)}
             onLeave={() => setHoveredId(null)}

@@ -37,7 +37,7 @@ export function TradeEntryForm({ contract, candle, onSubmitted }: Props) {
 
   const hasPosition = side !== ''
   const priceNum = Number(price)
-  const priceValid = price.trim() !== '' && !Number.isNaN(priceNum) && priceNum > 0
+  const priceValid = price.trim() !== '' && !Number.isNaN(priceNum) && priceNum > 0 && Number.isInteger(priceNum)
 
   // Validation: a position needs trade type + price; a comment-only entry needs
   // a non-empty comment.

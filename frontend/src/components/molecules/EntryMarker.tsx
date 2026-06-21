@@ -9,6 +9,8 @@ interface Props {
   y: number
   /** Marker diameter in px (scales with candle width). */
   size: number
+  /** True for memo-only entries (no side/price). */
+  isMemo: boolean
   hovered: boolean
   onHover: () => void
   onLeave: () => void
@@ -19,27 +21,31 @@ const typeLabel = (t: string) => (t === 'open' ? '新規' : t === 'close' ? '決
 
 /** A chart marker placed at an entry's (time, price) coordinate. On hover it
  * shows a speech-bubble tooltip to the right. */
-export function EntryMarker({ entry, x, y, size, hovered, onHover, onLeave }: Props) {
+export function EntryMarker({ entry, x, y, size, isMemo, hovered, onHover, onLeave }: Props) {
   const isLong = entry.side === 'long'
-  const color = isLong ? colors.up : colors.down
+  const color = isMemo ? '#94a3b8' : isLong ? colors.up : colors.down
+  const shape = isMemo ? 'diamond' : 'circle'
   const borderWidth = size >= 8 ? 2 : 1
+  const memoSize = Math.max(size, 10)
 
   // place on the integer pixel grid (same as the canvas) so the marker sits
   // exactly centred on the bar instead of half a pixel off
-  const left = Math.round(x - size / 2)
-  const top = Math.round(y - size / 2)
+  const displaySize = isMemo ? memoSize : size
+  const left = Math.round(x - displaySize / 2)
+  const top = Math.round(y - displaySize / 2)
 
   return (
     <div
-      style={{ position: 'absolute', left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px`, pointerEvents: 'auto' }}
+      style={{ position: 'absolute', left: `${left}px`, top: `${top}px`, width: `${displaySize}px`, height: `${displaySize}px`, pointerEvents: 'auto' }}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >
       <div
         style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          borderRadius: '50%',
+          width: `${displaySize}px`,
+          height: `${displaySize}px`,
+          borderRadius: shape === 'circle' ? '50%' : '2px',
+          transform: shape === 'diamond' ? 'rotate(45deg)' : undefined,
           background: color,
           border: `${borderWidth}px solid #fff`,
           boxShadow: '0 0 0 1px rgba(0,0,0,0.35)',
@@ -83,12 +89,18 @@ export function EntryMarker({ entry, x, y, size, hovered, onHover, onLeave }: Pr
             }}
           />
           <div style={{ color: colors.textFaint, marginBottom: '2px' }}>{formatTimeJST(entry.time)}</div>
-          <div style={{ fontWeight: 600, color }}>
-            {sideLabel(entry.side)} ・ {typeLabel(entry.tradeType)}
-          </div>
-          {entry.price != null && <div>金額: {entry.price.toLocaleString()}</div>}
-          {entry.comment && (
-            <div style={{ color: colors.textMuted, marginTop: '2px', whiteSpace: 'pre-wrap' }}>{entry.comment}</div>
+          {isMemo ? (
+            <div style={{ color: colors.textMuted, whiteSpace: 'pre-wrap' }}>{entry.comment}</div>
+          ) : (
+            <>
+              <div style={{ fontWeight: 600, color }}>
+                {sideLabel(entry.side)} ・ {typeLabel(entry.tradeType)}
+              </div>
+              {entry.price != null && <div>金額: {entry.price.toLocaleString()}</div>}
+              {entry.comment && (
+                <div style={{ color: colors.textMuted, marginTop: '2px', whiteSpace: 'pre-wrap' }}>{entry.comment}</div>
+              )}
+            </>
           )}
         </div>
       )}
