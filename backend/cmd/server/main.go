@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	dsn := getEnv("DB_DSN", "app:app@tcp(localhost:3306)/nikkei_trade?parseTime=true&loc=Asia%2FTokyo")
+	dsn := getEnv("DB_DSN", "app:app@tcp(localhost:3306)/nikkei_trade?parseTime=true&loc=UTC")
 	database, err := db.Open(dsn)
 	if err != nil {
 		log.Fatalf("db: %v", err)
