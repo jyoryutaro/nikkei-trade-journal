@@ -1,4 +1,4 @@
-.PHONY: up down server frontend db-console test
+.PHONY: up down server frontend db-console db-migrate test
 
 up:
 	docker compose up -d
@@ -17,6 +17,13 @@ frontend:
 
 db-console:
 	docker compose exec db mysql -uapp -papp nikkei_trade
+
+db-migrate:
+	@for f in db/init/*.sql; do \
+		echo "Applying $$f ..."; \
+		docker compose exec -T db mysql -uapp -papp nikkei_trade < $$f; \
+	done
+	@echo "Migration done"
 
 test:
 	cd backend && go test ./...
