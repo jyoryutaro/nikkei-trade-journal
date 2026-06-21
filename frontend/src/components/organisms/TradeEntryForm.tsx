@@ -4,7 +4,7 @@ import { createJournalEntry, type Side, type TradeType } from '../../api/journal
 import { RadioGroup } from '../molecules/RadioGroup'
 import { NumberInput } from '../atoms/NumberInput'
 import { TextArea } from '../atoms/TextArea'
-import { DateTimeInput } from '../atoms/DateTimeInput'
+import { TimeInput } from '../atoms/TimeInput'
 import { Button } from '../atoms/Button'
 import { colors } from '../../theme'
 
@@ -35,8 +35,10 @@ export function TradeEntryForm({ contract, candle, timeframe, onSubmitted }: Pro
   const [tradeType, setTradeType] = useState<TradeType>('')
   const [price, setPrice] = useState('')
   const [comment, setComment] = useState('')
-  // editable time (JST), defaults to the candle's start; only used for non-1m
-  const [timeStr, setTimeStr] = useState(() => toJstInputValue(candle.time))
+  // editable time-of-day (JST "HH:mm"), defaults to the candle's start; only
+  // used for non-1m. The date is taken from the selected candle.
+  const candleDate = toJstInputValue(candle.time).slice(0, 10) // "YYYY-MM-DD" (JST)
+  const [timeStr, setTimeStr] = useState(() => toJstInputValue(candle.time).slice(11, 16)) // "HH:mm"
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,7 +66,7 @@ export function TradeEntryForm({ contract, candle, timeframe, onSubmitted }: Pro
     setTradeType('')
     setPrice('')
     setComment('')
-    setTimeStr(toJstInputValue(candle.time))
+    setTimeStr(toJstInputValue(candle.time).slice(11, 16))
   }
 
   const handleSubmit = async () => {
@@ -74,7 +76,7 @@ export function TradeEntryForm({ contract, candle, timeframe, onSubmitted }: Pro
     try {
       await createJournalEntry({
         contract,
-        time: editableTime ? fromJstInputValue(timeStr) : candle.time,
+        time: editableTime ? fromJstInputValue(`${candleDate}T${timeStr}`) : candle.time,
         side,
         tradeType: hasPosition ? tradeType : '',
         price: hasPosition ? priceNum : null,
@@ -93,8 +95,8 @@ export function TradeEntryForm({ contract, candle, timeframe, onSubmitted }: Pro
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {editableTime && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>日時（JST・既定はローソク開始）</span>
-          <DateTimeInput value={timeStr} onChange={setTimeStr} />
+          <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>時刻（JST・既定はローソク開始）</span>
+          <TimeInput value={timeStr} onChange={setTimeStr} />
         </div>
       )}
 

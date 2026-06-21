@@ -1,15 +1,15 @@
 import { colors } from '../../theme'
 
 interface Props {
-  value: string // "YYYY-MM-DDTHH:mm"
+  value: string // "HH:mm"
   onChange: (value: string) => void
 }
 
-/** A styled datetime-local input (minute precision). */
-export function DateTimeInput({ value, onChange }: Props) {
+/** A styled time-of-day input (HH:mm, minute precision). */
+export function TimeInput({ value, onChange }: Props) {
   return (
     <input
-      type="datetime-local"
+      type="time"
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{
